@@ -2,7 +2,7 @@ FROM lsiobase/alpine:3.8 as buildstage
 ############## build stage ##############
 
 # package versions
-ARG FFMPEG_VER="3.4.2"
+ARG FFMPEG_VER="4.0.2"
 
 # copy patches
 COPY patches/ /tmp/patches/
@@ -84,7 +84,7 @@ RUN \
 	--prefix=/usr && \
  make -j$(nproc) && \
  gcc -o tools/qt-faststart $CFLAGS tools/qt-faststart.c && \
- make -j$(nproc) doc/ffmpeg.1 doc/ffplay.1 doc/ffserver.1 && \
+ make -j$(nproc) doc/ffmpeg.1 doc/ffplay.1 && \
  make -j$(nproc) DESTDIR=/tmp/ffmpeg-build install install-man && \
  install -D -m755 tools/qt-faststart /tmp/ffmpeg-build/usr/bin/qt-faststart
 
