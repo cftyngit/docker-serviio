@@ -8,6 +8,8 @@ ARG FFMPEG_VER="3.4.2"
 COPY patches/ /tmp/patches/
 
 RUN \
+ echo http://ftp.yzu.edu.tw/Linux/alpine/latest-stable/main/ > /etc/apk/repositories && \
+ echo http://ftp.yzu.edu.tw/Linux/alpine/latest-stable/community/ >> /etc/apk/repositories && \
  echo "**** install build packages ****" && \
  apk add --no-cache --virtual=build-dependencies \
 	alsa-lib-dev \
@@ -80,10 +82,10 @@ RUN \
 	--enable-shared \
 	--enable-vaapi \
 	--prefix=/usr && \
- make && \
+ make -j$(nproc) && \
  gcc -o tools/qt-faststart $CFLAGS tools/qt-faststart.c && \
- make doc/ffmpeg.1 doc/ffplay.1 doc/ffserver.1 && \
- make DESTDIR=/tmp/ffmpeg-build install install-man && \
+ make -j$(nproc) doc/ffmpeg.1 doc/ffplay.1 doc/ffserver.1 && \
+ make -j$(nproc) DESTDIR=/tmp/ffmpeg-build install install-man && \
  install -D -m755 tools/qt-faststart /tmp/ffmpeg-build/usr/bin/qt-faststart
 
 RUN \
@@ -156,7 +158,8 @@ RUN \
 	v4l-utils-libs \
 	x264-libs \
 	x265 \
-	xvidcore && \
+	xvidcore \
+	libva-intel-driver && \
  echo "**** install serviio app ****" && \
  mkdir -p \
 	/app/serviio && \
