@@ -3,6 +3,7 @@ FROM lsiobase/alpine:3.8 as buildstage
 
 # package versions
 ARG FFMPEG_VER="4.0.2"
+ARG LIBMFX_VER="1.23"
 
 # copy patches
 COPY patches/ /tmp/patches/
@@ -43,7 +44,33 @@ RUN \
 	x265-dev \
 	xvidcore-dev \
 	yasm \
-	zlib-dev
+	zlib-dev \
+	autoconf \
+	automake \
+	libtool
+
+RUN \
+ echo "**** compile libmfx ****" && \
+ mkdir -p /tmp/libmfx-src && \
+ curl -o \
+ /tmp/libmfx.tar.gz -L \
+	"https://github.com/lu-zero/mfx_dispatch/archive/${LIBMFX_VER}.tar.gz" && \
+ tar xf \
+ /tmp/libmfx.tar.gz -C \
+	/tmp/libmfx-src --strip-components=1 && \
+ cd /tmp/libmfx-src && \
+autoreconf -i && \
+./configure \
+    --prefix='/usr' \
+    --enable-static='yes' \
+    --enable-shared='no' \
+    --enable-fast-install='yes' \
+    --with-libva_drm='yes' \
+    --with-libva_x11='yes' \
+    --with-pic && \
+    make -j$(nproc) && \
+    make -j$(nproc) install && \
+    make -j$(nproc) DESTDIR=/tmp/libmfx-build install
 
 RUN \
  echo "**** compile ffmpeg ****" && \
@@ -81,6 +108,10 @@ RUN \
 	--enable-pthreads \
 	--enable-shared \
 	--enable-vaapi \
+	--enable-libmfx \
+	--enable-encoder=h264_qsv \
+	--enable-decoder=h264_qsv \
+	--enable-nonfree \
 	--prefix=/usr && \
  make -j$(nproc) && \
  gcc -o tools/qt-faststart $CFLAGS tools/qt-faststart.c && \
@@ -111,6 +142,7 @@ ENV JAVA_HOME="/usr/bin/java"
 
 RUN \
  echo "**** change abc home folder ****" && \
+ usermod -a -G root abc && \
  usermod -d /config/serviio abc && \
  echo "**** install runtime packages ****" && \
  apk add --no-cache \
@@ -174,6 +206,7 @@ RUN \
 
 # copy files from build stage and local files
 COPY --from=buildstage /tmp/ffmpeg-build/usr/ /usr/
+COPY --from=buildstage /tmp/libmfx-build/usr/ /usr/
 COPY root/ /
 
 # ports and volumes
